@@ -77,7 +77,6 @@ int main (int argc, char* const argv[])
 		perror("Error opening file for writing");
 		exit(EXIT_FAILURE);
 	}
-	//result = lseek (fd, FILE_LENGTH+1, SEEK_SET);
 	result = lseek (fd, file_lenght - 1, SEEK_SET);
 	if (result == -1) {
 		close(fd);
