@@ -7,7 +7,12 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <sys/types.h>
+#include <sys/ioctl.h>
+
+
 #define __DEBUG__
+//#define __BOOK__
 
 //Размер конечного файла с заголовком
 #define FILE_LENGTH 480054
@@ -30,6 +35,12 @@
 #define EIGHT_FILE	"8.pgm"
 #define NINE_FILE	"9.pgm"
 #define DOTS_FILE	"dots.pgm"
+
+
+
+#define FBIO_EINK_GET_TEMPERATURE        0x46A1    //Returns temperature in degree Celsius
+#define FBIO_EINK_DISP_PIC                0x46A2    //Displays picture
+
 
 //заголовок конечного PGM-файла
 char * header = "P5\x0A# CREATOR: GIMP PNM Filter Version 1.1\x0A\x36\x30\x30 800\x0A\x32\x35\x35\x0A";
@@ -66,7 +77,7 @@ int main (int argc, char* const argv[])
 		first_header = 0;
 		file_lenght = 480000;
 	}
-	
+#ifndef __BOOK__
 	if (!device) {
 		fd = open ("test.pgm", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 	
@@ -89,7 +100,10 @@ int main (int argc, char* const argv[])
 		perror("Error writing last byte of the file");
 		exit(EXIT_FAILURE);
 	}
-
+#else
+	fd = open ( "/dev/fb0", O_RDWR);
+	ioctl (fd, FBIO_EINK_GET_TEMPERATURE, NULL);    //configure framebuffer
+#endif //__BOOK__
 	image = mmap (0, file_lenght, PROT_WRITE, MAP_SHARED, fd, 0);
 	if (image == MAP_FAILED) {
 		close(fd);
@@ -122,13 +136,16 @@ int main (int argc, char* const argv[])
 	print_symbol(6 ,numer_files[(tm_ptr->tm_sec - tm_ptr->tm_sec%10) / 10]);
 	print_symbol(7 ,numer_files[tm_ptr->tm_sec%10]);
 	//msync(image, FILE_LENGTH, MS_ASYNC);
+#ifndef __BOOK__
 	msync(image, file_lenght, MS_ASYNC);
-	sleep(1);
-
 	if (munmap(image, file_lenght) == -1) {
 		perror("Error un-mmapping the file");
 		/* Decide here whether to close(fd) and exit() or not. Depends... */
 	}
+#else
+	ioctl (fd, FBIO_EINK_DISP_PIC, 0);
+#endif //__BOOK__
+//	sleep(1);
 	close (fd);
 	return 0;
 }
